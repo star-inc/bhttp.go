@@ -7,15 +7,12 @@ package bHttp
 import (
 	"bytes"
 	"io"
-	"io/ioutil"
 	"log"
 	"net/http"
 	"net/url"
 	"path"
 	"strings"
 )
-
-type StatusCode int
 
 const (
 	DefaultUserAgent = "Mozilla/5.0 (compatible; Star Butterfly HTTP/1.0; +https://github.com/star-inc/bhttp.go)"
@@ -111,7 +108,7 @@ func (c *Client) Do(method, uri string, data io.Reader) (StatusCode, []byte) {
 			log.Panicln(err)
 		}
 	}()
-	result, err := ioutil.ReadAll(response.Body)
+	result, err := io.ReadAll(response.Body)
 	if err != nil {
 		log.Panicln(err)
 	}
