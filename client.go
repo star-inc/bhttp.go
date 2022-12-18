@@ -18,7 +18,7 @@ import (
 type StatusCode int
 
 const (
-	DefaultUserAgent = "Mozilla/5.0 (compatible; Star Butterfly/1.0; +https://github.com/star-inc/butterfly)"
+	DefaultUserAgent = "Mozilla/5.0 (compatible; Star Butterfly HTTP/1.0; +https://github.com/star-inc/bhttp.go)"
 )
 
 type Client struct {
