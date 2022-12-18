@@ -1,5 +1,5 @@
 # Butterfly HTTP
 
-The easist HTTP client from Butterfly.
+The easiest HTTP client for GoLang from Butterfly.
 
 > (c) 2022 Star Inc.

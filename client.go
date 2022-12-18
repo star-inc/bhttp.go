@@ -1,4 +1,4 @@
-// Butterfly HTTP - The easist HTTP client from Butterfly.
+// Butterfly HTTP - The easiest HTTP client for GoLang from Butterfly.
 // Copyright(c) 2022 Star Inc. All Rights Reserved.
 // The software licensed under Mozilla Public License Version 2.0
 
