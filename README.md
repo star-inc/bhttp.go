@@ -12,7 +12,7 @@ go get -u github.com/star-inc/bhttp.go
 
 ## How to use
 
-There are some examples: [client_test.go](tests/client_test.go)
+There are some examples: [client_test.go](client_test.go)
 
 ## License
 
