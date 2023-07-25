@@ -14,8 +14,4 @@ go get -u github.com/star-inc/bhttp.go
 
 There are some examples: [client_test.go](client_test.go)
 
-## License
-
-The software is licensed under [Mozilla Public License 2.0](LICENSE).
-
-> (c) 2022 Star Inc.
+> (c) 2023 Star Inc.
