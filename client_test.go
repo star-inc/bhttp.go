@@ -6,14 +6,38 @@ package bHttp
 import (
 	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"os"
 	"strings"
 	"testing"
 )
 
-const testEndPoint = "https://httpbin.org"
+var testEndPoint string
+
+func TestMain(m *testing.M) {
+	mux := http.NewServeMux()
+	handler := func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		_, _ = io.Copy(io.Discard, r.Body)
+		_, _ = w.Write([]byte(`{"status":"ok"}`))
+	}
+	mux.HandleFunc("/get", handler)
+	mux.HandleFunc("/post", handler)
+	mux.HandleFunc("/put", handler)
+	mux.HandleFunc("/delete", handler)
+	mux.HandleFunc("/patch", handler)
+
+	ts := httptest.NewServer(mux)
+	testEndPoint = ts.URL
+
+	code := m.Run()
+	ts.Close()
+	os.Exit(code)
+}
 
 func Test_HttpGet(t *testing.T) {
 	client, err := NewHttpClient(testEndPoint)
