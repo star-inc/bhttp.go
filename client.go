@@ -5,8 +5,8 @@ package bHttp
 
 import (
 	"bytes"
+	"errors"
 	"io"
-	"log"
 	"net/http"
 	"net/url"
 	"path"
@@ -23,11 +23,13 @@ type Client struct {
 	appendHeader http.Header
 }
 
-func NewHttpClient(baseURL string) *Client {
+func NewHttpClient(baseURL string) (*Client, error) {
 	httpClient := new(Client)
 	httpClient.Initialize()
-	httpClient.SetBaseURL(baseURL)
-	return httpClient
+	if err := httpClient.SetBaseURL(baseURL); err != nil {
+		return nil, err
+	}
+	return httpClient, nil
 }
 
 func (c *Client) Initialize() *Client {
@@ -40,12 +42,13 @@ func (c *Client) AddHeader(name string, values []string) *Client {
 	return c
 }
 
-func (c *Client) SetBaseURL(baseURL string) *Client {
-	var err error
-	if c.baseURL, err = url.Parse(baseURL); err != nil {
-		log.Panicln(err)
+func (c *Client) SetBaseURL(baseURL string) error {
+	u, err := url.Parse(baseURL)
+	if err != nil {
+		return err
 	}
-	return c
+	c.baseURL = u
+	return nil
 }
 
 func (c *Client) SetUserAgent(userAgent string) *Client {
@@ -53,28 +56,28 @@ func (c *Client) SetUserAgent(userAgent string) *Client {
 	return c
 }
 
-func (c *Client) baseURLGlue(uri string) string {
+func (c *Client) baseURLGlue(uri string) (string, error) {
 	urlValues, err := url.Parse(uri)
 	if err != nil {
-		log.Panicln(err)
+		return "", err
 	}
 	if urlValues.Scheme != "" {
-		return uri
-	} else {
-		newURL := *c.baseURL
-		newURL.Path = path.Join(newURL.Path, urlValues.Path)
-		newURL.RawQuery = urlValues.RawQuery
-		newURL.RawFragment = urlValues.RawFragment
-		return newURL.String()
+		return uri, nil
 	}
+	if c.baseURL == nil {
+		return "", errors.New("baseURL is not set")
+	}
+	newURL := *c.baseURL
+	newURL.Path = path.Join(newURL.Path, urlValues.Path)
+	newURL.RawQuery = urlValues.RawQuery
+	newURL.RawFragment = urlValues.RawFragment
+	return newURL.String(), nil
 }
 
-func (c *Client) initRequest(method, fullURI string, data io.Reader) *http.Request {
-	var err error
-	var request *http.Request
-	request, err = http.NewRequest(method, fullURI, data)
+func (c *Client) initRequest(method, fullURI string, data io.Reader) (*http.Request, error) {
+	request, err := http.NewRequest(method, fullURI, data)
 	if err != nil {
-		log.Panicln(err)
+		return nil, err
 	}
 	if data != nil {
 		if _, ok := data.(*bytes.Buffer); ok {
@@ -91,45 +94,54 @@ func (c *Client) initRequest(method, fullURI string, data io.Reader) *http.Reque
 	for key, value := range c.appendHeader {
 		request.Header[key] = value
 	}
-	return request
+	return request, nil
 }
 
-func (c *Client) Do(method, uri string, data io.Reader) (StatusCode, []byte) {
+func (c *Client) Do(method, uri string, data io.Reader) (code StatusCode, body []byte, err error) {
 	client := &http.Client{}
-	fullURI := c.baseURLGlue(uri)
-	request := c.initRequest(method, fullURI, data)
-	response, err := client.Do(request)
+	var fullURI string
+	fullURI, err = c.baseURLGlue(uri)
 	if err != nil {
-		log.Panicln(err)
+		return 0, nil, err
+	}
+	var request *http.Request
+	request, err = c.initRequest(method, fullURI, data)
+	if err != nil {
+		return 0, nil, err
+	}
+	var response *http.Response
+	response, err = client.Do(request)
+	if err != nil {
+		return 0, nil, err
 	}
 	defer func() {
-		if err := response.Body.Close(); err != nil {
-			log.Panicln(err)
+		if closeErr := response.Body.Close(); closeErr != nil && err == nil {
+			err = closeErr
 		}
 	}()
-	result, err := io.ReadAll(response.Body)
+	body, err = io.ReadAll(response.Body)
 	if err != nil {
-		log.Panicln(err)
+		return StatusCode(response.StatusCode), nil, err
 	}
-	return StatusCode(response.StatusCode), result
+	return StatusCode(response.StatusCode), body, nil
 }
 
-func (c *Client) GET(uri string) (StatusCode, []byte) {
+func (c *Client) GET(uri string) (StatusCode, []byte, error) {
 	return c.Do("GET", uri, nil)
 }
 
-func (c *Client) POST(uri string, data io.Reader) (StatusCode, []byte) {
+func (c *Client) POST(uri string, data io.Reader) (StatusCode, []byte, error) {
 	return c.Do("POST", uri, data)
 }
 
-func (c *Client) PUT(uri string, data io.Reader) (StatusCode, []byte) {
+func (c *Client) PUT(uri string, data io.Reader) (StatusCode, []byte, error) {
 	return c.Do("PUT", uri, data)
 }
 
-func (c *Client) DELETE(uri string, data io.Reader) (StatusCode, []byte) {
+func (c *Client) DELETE(uri string, data io.Reader) (StatusCode, []byte, error) {
 	return c.Do("DELETE", uri, data)
 }
 
-func (c *Client) PATCH(uri string, data io.Reader) (StatusCode, []byte) {
+func (c *Client) PATCH(uri string, data io.Reader) (StatusCode, []byte, error) {
 	return c.Do("PATCH", uri, data)
 }
